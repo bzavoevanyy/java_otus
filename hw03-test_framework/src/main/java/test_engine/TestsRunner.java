@@ -7,81 +7,63 @@ import test_engine.annotations.Test;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class TestsRunner {
 
     private TestsRunner() {
     }
 
-    public static boolean runTests(Class<?> clazz) throws Exception {
-
-        boolean entireResult = true;
-        final List<Method> beforeMethods = new ArrayList<>();
-        final Map<Method, Throwable> testMethods = new HashMap<>();
-        final List<Method> afterMethods = new ArrayList<>();
+    public static void runTests(Class<?> clazz) {
 
         final Method[] methods = clazz.getDeclaredMethods();
-
         // check annotations in test Class
-        for (Method method : methods
-        ) {
-            if (method.isAnnotationPresent(Before.class)) {
-                beforeMethods.add(method);
-            } else if (method.isAnnotationPresent(Test.class)) {
-                testMethods.put(method, null);
-            } else if (method.isAnnotationPresent(After.class)) {
-                afterMethods.add(method);
-            }
-        }
+        final TestCasesStore methodsStore = fillTestCasesStore(methods);
+        final TestResultsStore testResultsStore = new TestResultsStore();
 
-        // do test methods @Before(s) -> @Test -> @After(s)
-        for (Map.Entry<Method, Throwable> testMethod : testMethods.entrySet()
-        ) {
+        // do test methods @Before(s) -> @Test -> @After(s) and store results
+        while (methodsStore.hasNextTestCase()) {
             final var obj = createTestObj(clazz);
-            for (Method beforeMethod : beforeMethods
-            ) {
-                beforeMethod.invoke(obj);
-            }
-
+            final var testCase = methodsStore.nextTestCase();
+            final var testResult = new TestResult(testCase.getTestMethod(), null);
+            testResultsStore.addTestResult(testResult);
             try {
-                testMethod.getKey().invoke(obj);
-                System.out.println("\u001B[32mTest passed\u001B[0m");
-            } catch (InvocationTargetException e) {
-                System.out.println("\u001B[31mTest failed\u001B[0m");
-                testMethods.put(testMethod.getKey(), e.getTargetException());
-                entireResult = false;
-            }
-
-            for (Method afterMethod : afterMethods
-            ) {
-                afterMethod.invoke(obj);
+                for (Method beforeMethod : testCase.getBeforeMethods()) {
+                    beforeMethod.invoke(obj);
+                }
+                testCase.getTestMethod().invoke(obj);
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                testResult.setException(e.getCause());
+            } finally {
+                for (Method afterMethod : testCase.getAfterMethods()) {
+                    try {
+                        afterMethod.invoke(obj);
+                    } catch (InvocationTargetException | IllegalAccessException e) {
+                        if (testResult.getException() != null) {
+                            testResult.getException().addSuppressed(e.getCause());
+                        } else {
+                            testResult.setException(e.getCause());
+                        }
+                    }
+                }
             }
         }
-
-        // show test results
-        showTestResults(testMethods);
-
-        return entireResult;
+        // Show tests result
+        testResultsStore.showTestResults();
     }
 
-    private static void showTestResults(Map<Method, Throwable> testMethods) {
-        final var testPassed = Collections.frequency(testMethods.values(), null);
-        final var testExecuted = testMethods.size();
-        final var testFailed = testMethods.entrySet().stream()
-                .filter(entry -> entry.getValue() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        System.out.println("*****************************************************************");
-        System.out.printf("%s test methods executed, %s passed,\u001B[31m %s failed%n\u001B[0m", testExecuted, testPassed, testFailed.size());
-        testFailed.forEach((k, v) -> {
-            System.out.println(k.getDeclaringClass().getName());
-            System.out.println(k.getName() + " : " + "\u001B[31m" + v.getMessage() + "\u001B[0m");
-            System.err.println(k.getName() + " " + v.getMessage());
-            v.printStackTrace();
-        });
+    private static TestCasesStore fillTestCasesStore(Method[] methods) {
+        TestCasesStore methodsStore = new TestCasesStore();
+        for (Method method : methods) {
+            if (method.isAnnotationPresent(Before.class)) {
+                methodsStore.addBeforeMethod(method);
+            } else if (method.isAnnotationPresent(Test.class)) {
+                methodsStore.addTestMethod(method);
+            } else if (method.isAnnotationPresent(After.class)) {
+                methodsStore.addAfterMethod(method);
+            }
+        }
+        return methodsStore;
     }
-
     private static Object createTestObj(Class<?> clazz) {
         try {
             Constructor<?> constructor = clazz.getConstructor();
