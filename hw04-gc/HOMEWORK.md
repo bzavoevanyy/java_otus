@@ -1,5 +1,5 @@
-##Результаты запуска приложения с различным размером хипа
-###Тесты производились на Macbook air M1 ARM64 16GB, Liberica Standard JDK 17
+## Результаты запуска приложения с различным размером хипа
+### Тесты производились на Macbook air M1 ARM64 16GB, Liberica Standard JDK 17
 
 |Heap size|Result|Throughput|Latency avg pause|Latency max pause|Total pause time|Total Concurrent time|
 |:---:|:---:|:---:|:---:|:---:| :---:|:---|
@@ -14,7 +14,7 @@
 |2048 mb|spend msec:3781, sec:3|77.03%|35.4 ms|55.2 ms|	849 ms|0|
 |2304 mb|spend msec:4042, sec:4|74.111%|44.5 ms|93.3 ms|1 sec 23 ms|0|
 
-###После оптимизаници
+### После оптимизаници
 
 |Heap size|Result|Throughput|Latency avg pause|Latency max pause|Total pause time|Total Concurrent time|
 |:---:|:---:|:---:|:---:|:---:| :---:|:---|
