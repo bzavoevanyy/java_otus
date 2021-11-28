@@ -37,4 +37,4 @@ logs
 *.iws
 *.ipr
 *.idea
-
+.java-version

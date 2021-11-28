@@ -3,4 +3,5 @@ include 'hw01-gradle'
 include 'hw02-collections'
 include 'hw03-test_framework'
 include 'hw04-gc'
+include 'hw06-atm'
 
