@@ -1,11 +1,13 @@
 package ru.otus.service;
 
+import ru.otus.domain.Denominations;
+
 import java.util.Map;
 
 public interface AtmService {
-    int putCash(Map<Integer, Integer> cash);
+    int putCash(Map<Denominations, Integer> cash);
 
-    Map<Integer, Integer> getCash(int amount);
+    Map<Denominations, Integer> getCash(int amount);
 
     int getBalance();
 }

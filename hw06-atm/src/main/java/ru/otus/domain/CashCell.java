@@ -1,7 +1,7 @@
 package ru.otus.domain;
 
 public interface CashCell {
-    int getDenomination();
+    Denominations getDenomination();
 
     void add(int amount);
 

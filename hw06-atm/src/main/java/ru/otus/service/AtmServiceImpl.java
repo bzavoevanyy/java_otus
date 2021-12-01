@@ -2,10 +2,9 @@ package ru.otus.service;
 
 import ru.otus.domain.Atm;
 import ru.otus.domain.CashCell;
+import ru.otus.domain.Denominations;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
 
 public class AtmServiceImpl implements AtmService {
     private final Atm atm;
@@ -15,25 +14,28 @@ public class AtmServiceImpl implements AtmService {
     }
 
     @Override
-    public int putCash(Map<Integer, Integer> cash) {
-        TreeSet<CashCell> cashCells = atm.getCashCells();
-        for (Map.Entry<Integer, Integer> entry : cash.entrySet()) {
+    public int putCash(Map<Denominations, Integer> cash) {
+
+        var cashCells = atm.getCashCells();
+
+        for (var entry : cash.entrySet()) {
             long count = cashCells.stream().filter(cashCell -> cashCell.getDenomination() == entry.getKey())
                     .peek(cashCell -> cashCell.add(entry.getValue())).count();
             if (count != 1) {
-                throw new AtmOperationException(String.format("Cash cell for %s banknote not found", entry.getKey()));
+                throw new AtmOperationException("Atm out of service");
             }
         }
-        return cash.entrySet().stream().map(entry -> entry.getKey() * entry.getValue()).reduce(Integer::sum)
+        return cash.entrySet().stream().map(entry -> entry.getKey().getValue() * entry.getValue()).reduce(Integer::sum)
                 .orElseThrow(() -> new AtmOperationException("Atm out of service"));
     }
 
     @Override
-    public Map<Integer, Integer> getCash(int amount) {
-        Map<Integer, Integer> cash = mapAmount(amount);
+    public Map<Denominations, Integer> getCash(int amount) {
         TreeSet<CashCell> cashCells = atm.getCashCells();
-        for (Map.Entry<Integer, Integer> entry : cash.entrySet()) {
-            long count = cashCells.stream().filter(cashCell -> cashCell.getDenomination() == entry.getKey())
+        Map<Denominations, Integer> cash = mapAmount(amount, cashCells);
+
+        for (Map.Entry<Denominations, Integer> entry : cash.entrySet()) {
+            long count = cashCells.stream().filter(cashCell -> cashCell.getDenomination().equals(entry.getKey()))
                     .peek(cashCell -> cashCell.get(entry.getValue())).count();
             if (count != 1) {
                 throw new AtmOperationException("Atm out of service");
@@ -44,24 +46,25 @@ public class AtmServiceImpl implements AtmService {
 
     @Override
     public int getBalance() {
-        return atm.getCashCells().stream().map(entry -> entry.getDenomination() * entry.getAll())
+        return atm.getCashCells().stream().map(entry -> entry.getDenomination().getValue() * entry.getAll())
                 .reduce(Integer::sum).orElseThrow(() -> new AtmOperationException("Atm out of service"));
     }
 
-    private Map<Integer, Integer> mapAmount(int amount) {
-        TreeSet<CashCell> cashCells = atm.getCashCells();
-        Map<Integer, Integer> cash = new HashMap<>();
+    private Map<Denominations, Integer> mapAmount(int amount, TreeSet<CashCell> cashCells) {
+
+        Map<Denominations, Integer> cash = new HashMap<>();
+
         for (CashCell cashCell : cashCells.descendingSet()) {
-            int denomination = cashCell.getDenomination();
+            Denominations denomination = cashCell.getDenomination();
             int banknoteAvailable = cashCell.getAll();
-            final var i = amount / denomination;
+            final var i = amount / denomination.getValue();
             if (i > 0) {
                 if (i - banknoteAvailable > 0) {
                     cash.put(denomination, banknoteAvailable);
-                    amount = amount % denomination + (i - banknoteAvailable) * denomination;
+                    amount = amount % denomination.getValue() + (i - banknoteAvailable) * denomination.getValue();
                 } else {
                     cash.put(denomination, i);
-                    amount = amount % denomination;
+                    amount = amount % denomination.getValue();
                 }
             }
         }
