@@ -10,6 +10,8 @@ import java.util.List;
 
 public class EntityClassMetaDataImpl<T> implements EntityClassMetaData<T> {
     private final Class<T> clazz;
+    private final Constructor<T> constructor;
+
 
     public EntityClassMetaDataImpl(Class<T> clazz) {
         final var ids = Arrays.stream(clazz.getDeclaredFields())
@@ -18,6 +20,14 @@ public class EntityClassMetaDataImpl<T> implements EntityClassMetaData<T> {
             throw new MappingException("Could not find id field or too many id fields");
         }
         this.clazz = clazz;
+
+        var types = getAllFields().stream().map(Field::getType).toList();
+        var args = types.toArray(new Class[0]);
+        try {
+            this.constructor = this.clazz.getConstructor(args);
+        } catch (NoSuchMethodException | SecurityException e) {
+            throw new MappingException();
+        }
     }
 
     @Override
@@ -27,14 +37,7 @@ public class EntityClassMetaDataImpl<T> implements EntityClassMetaData<T> {
 
     @Override
     public Constructor<T> getConstructor() {
-        var types = getAllFields().stream().map(Field::getType).toList();
-        var args = types.toArray(new Class[0]);
-        try {
-            return this.clazz.getConstructor(args);
-        } catch (NoSuchMethodException | SecurityException e) {
-            throw new MappingException();
-        }
-
+        return this.constructor;
     }
 
     @Override
