@@ -1,8 +1,5 @@
 package ru.otus.crm.model;
 
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
-
 import javax.persistence.*;
 
 @Entity
@@ -11,7 +8,7 @@ public class Phone {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "phone_id")
-    private Long phone_id;
+    private Long phoneId;
     @Column(name = "number")
     private String number;
     @ManyToOne
@@ -21,23 +18,23 @@ public class Phone {
     public Phone() {
     }
 
-    public Phone(Long phone_id, String number) {
-        this.phone_id = phone_id;
+    public Phone(Long phoneId, String number) {
+        this.phoneId = phoneId;
         this.number = number;
     }
 
-    public Phone(Long phone_id, String number, Client client) {
-        this.phone_id = phone_id;
+    public Phone(Long phoneId, String number, Client client) {
+        this.phoneId = phoneId;
         this.number = number;
         this.client = client;
     }
 
-    public Long getPhone_id() {
-        return phone_id;
+    public Long getPhoneId() {
+        return phoneId;
     }
 
-    public void setPhone_id(Long phone_id) {
-        this.phone_id = phone_id;
+    public void setPhoneId(Long phone_id) {
+        this.phoneId = phone_id;
     }
 
     public String getNumber() {
@@ -59,13 +56,13 @@ public class Phone {
     @Override
     public String toString() {
         return "Phone{" +
-                "client_id=" + phone_id +
+                "phoneId=" + phoneId +
                 ", number='" + number + '\'' +
                 '}';
     }
 
     @Override
     public Phone clone() {
-        return new Phone(this.phone_id, this.number, this.client);
+        return new Phone(this.phoneId, this.number, this.client);
     }
 }

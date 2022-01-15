@@ -8,7 +8,7 @@ public class Address {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "address_id")
-    private Long address_id;
+    private Long addressId;
     @Column(name = "street")
     private String street;
 
@@ -16,21 +16,21 @@ public class Address {
     }
 
     public Address(String street) {
-        this.address_id = null;
+        this.addressId = null;
         this.street = street;
     }
 
-    public Address(Long address_id, String street) {
-        this.address_id = address_id;
+    public Address(Long addressId, String street) {
+        this.addressId = addressId;
         this.street = street;
     }
 
-    public Long getAddress_id() {
-        return address_id;
+    public Long getAddressId() {
+        return addressId;
     }
 
-    public void setAddress_id(Long id) {
-        this.address_id = id;
+    public void setAddressId(Long id) {
+        this.addressId = id;
     }
 
     public String getStreet() {
@@ -44,13 +44,13 @@ public class Address {
     @Override
     public String toString() {
         return "Address{" +
-                "id=" + address_id +
+                "id=" + addressId +
                 ", street='" + street + '\'' +
                 '}';
     }
 
     @Override
     public Address clone() {
-        return new Address(this.address_id, this.street);
+        return new Address(this.addressId, this.street);
     }
 }

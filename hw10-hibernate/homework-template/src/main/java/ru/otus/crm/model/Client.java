@@ -93,7 +93,6 @@ public class Client implements Cloneable {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", address=" + address +
-                ", phones=" + phones +
                 '}';
     }
 }
