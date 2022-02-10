@@ -5,7 +5,9 @@ import ru.otus.appcontainer.api.AppComponent;
 import ru.otus.appcontainer.api.AppComponentsContainer;
 import ru.otus.appcontainer.api.AppComponentsContainerConfig;
 
+import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.reflections.scanners.Scanners.TypesAnnotated;
 
@@ -19,9 +21,7 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
     }
 
     public AppComponentsContainerImpl(Class<?>... initialConfigClass) {
-        Arrays.stream(initialConfigClass)
-                .sorted(Comparator.comparing(clazz -> clazz.getAnnotation(AppComponentsContainerConfig.class).order()))
-                .forEach(this::processConfig);
+        processConfig(initialConfigClass);
     }
 
     public AppComponentsContainerImpl(String configPackage) {
@@ -29,45 +29,38 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
 
         var configs = reflections.getTypesAnnotatedWith(AppComponentsContainerConfig.class)
                 .toArray(new Class<?>[0]);
+        processConfig(configs);
+    }
+    private void processConfig(Class<?>... configs) {
         Arrays.stream(configs)
                 .sorted(Comparator.comparing(clazz -> clazz.getAnnotation(AppComponentsContainerConfig.class).order()))
                 .forEach(this::processConfig);
     }
-
     private void processConfig(Class<?> configClass) {
         checkConfigClass(configClass);
-        Arrays.stream(configClass.getDeclaredMethods())
+        final var sortedAppComponents = Arrays.stream(configClass.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(AppComponent.class))
                 .sorted(Comparator.comparing(method -> method.getAnnotation(AppComponent.class).order()))
-                .forEach(method -> {
-                    final var parameterCount = method.getParameterCount();
-                    try {
-                        if (parameterCount == 0) {
-                            final var bean = method
-                                    .invoke(method.getDeclaringClass().getDeclaredConstructor().newInstance());
-
-                            appComponents.add(bean);
-                            appComponentsByName.put(method.getAnnotation(AppComponent.class).name(), bean);
-                        } else {
-                            final var args = Arrays.stream(method.getParameterTypes())
-                                    .map(parameter -> appComponents.stream().map(component -> {
-                                        try {
-                                            return parameter.cast(component);
-                                        } catch (Exception e) {
-                                            return null;
-                                        }
-                                    }).filter(Objects::nonNull).findFirst().orElseThrow()).toArray();
-                            final var bean = method
-                                    .invoke(method.getDeclaringClass().getDeclaredConstructor().newInstance(), args);
-                            appComponents.add(bean);
-                            appComponentsByName.put(method.getAnnotation(AppComponent.class).name(), bean);
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                .collect(Collectors.toList());
+        processMethods(sortedAppComponents);
     }
-
+    private void processMethods(List<Method> sortedAppComponents) {
+        sortedAppComponents.forEach(method -> {
+            try {
+                List<Object> args = new ArrayList<>();
+                final var parameterTypes = method.getParameterTypes();
+                for (var parameterType : parameterTypes) {
+                    args.add(getAppComponent(parameterType));
+                }
+                final var bean = method.invoke(method.getDeclaringClass().getDeclaredConstructor().newInstance(), args.toArray());
+                final var oldBean = appComponentsByName.put(method.getAnnotation(AppComponent.class).name(), bean);
+                appComponents.remove(oldBean);
+                appComponents.add(bean);
+            } catch (Exception e) {
+                throw new RuntimeException(String.format("Error creating bean: %s", e.getMessage()));
+            }
+        });
+    }
     private void checkConfigClass(Class<?> configClass) {
         if (!configClass.isAnnotationPresent(AppComponentsContainerConfig.class)) {
             throw new IllegalArgumentException(String.format("Given class is not config %s", configClass.getName()));
@@ -82,7 +75,7 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
             } catch (Exception e) {
                 return null;
             }
-        }).filter(Objects::nonNull).findFirst().orElseThrow();
+        }).filter(Objects::nonNull).findFirst().orElse(null);
     }
 
     @Override
