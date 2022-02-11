@@ -38,23 +38,29 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
     }
     private void processConfig(Class<?> configClass) {
         checkConfigClass(configClass);
-        final var sortedAppComponents = Arrays.stream(configClass.getDeclaredMethods())
+        final var sortedBeanFactories = Arrays.stream(configClass.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(AppComponent.class))
                 .sorted(Comparator.comparing(method -> method.getAnnotation(AppComponent.class).order()))
                 .collect(Collectors.toList());
-        processMethods(sortedAppComponents);
+        processMethods(sortedBeanFactories);
     }
-    private void processMethods(List<Method> sortedAppComponents) {
-        sortedAppComponents.forEach(method -> {
+    private void processMethods(List<Method> sortedBeanFactories) {
+        sortedBeanFactories.forEach(method -> {
             try {
                 List<Object> args = new ArrayList<>();
                 final var parameterTypes = method.getParameterTypes();
                 for (var parameterType : parameterTypes) {
-                    args.add(getAppComponent(parameterType));
+                    final Object appComponent = getAppComponent(parameterType);
+                    if (appComponent == null) {
+                        throw new RuntimeException("Cannot find bean candidate for injection");
+                    }
+                    args.add(appComponent);
                 }
                 final var bean = method.invoke(method.getDeclaringClass().getDeclaredConstructor().newInstance(), args.toArray());
                 final var oldBean = appComponentsByName.put(method.getAnnotation(AppComponent.class).name(), bean);
-                appComponents.remove(oldBean);
+                if (oldBean != null) {
+                    throw new RuntimeException("Two or more beans with the same name");
+                }
                 appComponents.add(bean);
             } catch (Exception e) {
                 throw new RuntimeException(String.format("Error creating bean: %s", e.getMessage()));
@@ -69,13 +75,12 @@ public class AppComponentsContainerImpl implements AppComponentsContainer {
 
     @Override
     public <C> C getAppComponent(Class<C> componentClass) {
-        return appComponents.stream().map(component -> {
-            try {
-                return componentClass.cast(component);
-            } catch (Exception e) {
-                return null;
+        for (Object appComponent : appComponents) {
+            if (componentClass.isAssignableFrom(appComponent.getClass())) {
+                return (C) appComponent;
             }
-        }).filter(Objects::nonNull).findFirst().orElse(null);
+        }
+        return null;
     }
 
     @Override
