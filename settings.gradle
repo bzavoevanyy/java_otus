@@ -12,4 +12,5 @@ include 'hw09-orm:homework'
 include 'hw10-hibernate:homework-template'
 include 'hw11-cache_engine'
 include 'hw12-web_server'
+include 'hw16-queues'
 
