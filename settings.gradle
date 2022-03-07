@@ -16,4 +16,5 @@ include 'hw13-di'
 include 'hw14-spring_boot_web_app'
 include 'hw15-number_sequence'
 include 'hw16-queues'
+include 'hw17-grpc_app'
 
