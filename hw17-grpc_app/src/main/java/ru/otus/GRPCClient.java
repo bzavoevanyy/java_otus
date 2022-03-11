@@ -33,8 +33,10 @@ public class GRPCClient {
         stub.getSequence(message, new StreamObserver<>() {
             @Override
             public void onNext(ResponseSequenceMessage value) {
-                currentServerValue.set(value.getCurrentValue());
-                logger.info("new value: {}", value.getCurrentValue());
+                synchronized (GRPCClient.class) {
+                    currentServerValue.set(value.getCurrentValue());
+                    logger.info("new value: {}", value.getCurrentValue());
+                }
             }
 
             @Override
@@ -56,10 +58,12 @@ public class GRPCClient {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if (currentServerValue.intValue() == tempValue) {
-                currentValue = currentValue + 1;
-            } else {
-                currentValue = currentValue + currentServerValue.intValue() + 1;
+            synchronized (GRPCClient.class) {
+                if (currentServerValue.intValue() == tempValue) {
+                    currentValue = currentValue + 1;
+                } else {
+                    currentValue = currentValue + currentServerValue.intValue() + 1;
+                }
             }
 
             logger.info("CurrentValue: {}", currentValue);
