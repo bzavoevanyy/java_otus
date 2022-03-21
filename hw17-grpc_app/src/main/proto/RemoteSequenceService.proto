@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package ru.otus.protobuf.generated;
+
+option java_multiple_files = true;
+
+message RequestSequenceMessage {
+  int64 firstValue = 1;
+  int64 lastValue = 2;
+}
+message ResponseSequenceMessage {
+  int64 currentValue = 1;
+}
+
+message Empty {}
+
+service RemoteSequenceService {
+  rpc getSequence(RequestSequenceMessage) returns (stream ResponseSequenceMessage);
+}

@@ -33,6 +33,10 @@ allprojects {
             dependency("org.glassfish:javax.json:${Versions.glassfishJson}")
             dependency("org.testcontainers:junit-jupiter:${Versions.testcontainers}")
             dependency("org.testcontainers:postgresql:${Versions.testcontainers}")
+            dependency("io.grpc:grpc-netty:${Versions.grpc}")
+            dependency("io.grpc:grpc-protobuf:${Versions.grpc}")
+            dependency("io.grpc:grpc-stub:${Versions.grpc}")
+            dependency("com.google.protobuf:protobuf-java-util:${Versions.protobuf}")
         }
     }
 
